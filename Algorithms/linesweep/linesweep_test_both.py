@@ -8,7 +8,56 @@ import traceback
 import sys
 import numpy as np
 from numpy.random import rand, seed
-from timeit import timeit as ti
+from timeit import Timer
+from matplotlib import pyplot as plt
+
+# Helper function
+def test(ftest, fname):
+    """ Run the test 'ftest' on the function of name 'fname'.
+    'ftest' should be a callable test function with a docstring
+    that describes the test it is performing.
+    'fname' should be a string giving the name of the function
+    that is to be tested from both modules. """
+    print ftest.__doc__
+    print 'response should be: '
+    r = ftest(getattr(re, fname))
+    print r
+    try:
+        r = ftest(getattr(st, fname))
+        print 'student response was: '
+        print r
+    except:
+        print "Student's code caused an unexpected error: "
+        print '-'*60
+        traceback.print_exc(file=sys.stdout)
+        print '-'*60
+    raw_input("Press Enter to continue...")
+
+# Another helper function.
+def speed_test(ftest, fname):
+    """ Run the speed test 'ftest' on the function of name 'fname'.
+    'ftest' should be a callable test function with a docstring
+    that describes the test that it performs.
+    It should return the time taken for whatever test it is running.
+    'fname' should be a string giving the name of the function
+    that is to be tested from both modules. """
+    
+    # The logic for this function is pretty much identical to the
+    # logic in the test function. The primary difference is that the
+    # output is descriptive of a speed test instead of a correctness test.
+    print ftest.__doc__
+    print 'Reference time was:'
+    t = ftest(getattr(re, fname))
+    print t
+    try:
+        t = ftest(getattr(st, fname))
+        print 'student time was:'
+        print t
+    except:
+        # Skip printing the traceback.
+        # That should be taken care of in the correctness tests.
+        print "Student's code raised an error."
+    raw_input('Press Enter to continue...')
 
 def mindist_simple_correctness(mindist_simple):
     """ Correctness of mindist_simple function. """
@@ -42,31 +91,31 @@ def mindist_simple_speed_low_dim(mindist_simple):
     """ Speed of mindist_simple function for lower dimensions. """
     seed(12)
     X = rand(1000000, 2)
-    return ti('mindist_simple(X, metric)', setup='from __main__ import mindist_simple, X, metric', number=3)
+    T = Timer(lambda: mindist_simple(X, metric))
+    return T.timeit(number=3)
 
 def mindist_simple_speed_high_dim(mindist_simple):
     """ Speed of mindist_simple function for higher dimensions. """
     seed(42)
     X = rand(10000, 8)
-    return ti('mindist_simple(X, metric)', setup='from __main__ import mindist_simple, X, metric', number=10)
+    T = Timer(lambda: mindist_simple(X, metric))
+    return T.timeit(number=10)
 
 def mindist_speed_low_dim(mindist):
     """ Speed of mindist function for lower dimensions. """
     seed(18)
     X = rand(10000000, 2)
-    return ti('mindist(X)', setup='from __main__ import mindist, X', number=2)
+    T = Timer(lambda: mindist(X, metric))
+    return T.timeit(number=2)
 
 def mindist_speed_high_dim(mindist):
     """ Speed of mindist function for higher dimensions. """
     seed(25)
     X = rand(10000, 8)
-    return ti('mindist(X)', setup='from __main__ import mindist, X', number=2)
+    T = Timer(lambda: mindist(X, metric))
+    return T.timeit(number=2)
 
 if __name__ == '__main__':
-    try:
-        from grade import test, speed_test
-    except ImportError:
-        Raise ImportError('Could not find grading script to import testing functions.')
     test(mindist_simple_correctness, 'mindist_simple')
     test(mindist_correctness, 'mindist')
     #test(test_farthest, 'farthest')
