@@ -1,0 +1,62 @@
+# A driver for the import-by-path based version of the grading script.
+from os import system
+from os.path import dirname, isdir, isfile
+
+# Usage:
+# python grade_abs_imp.py <test> <students> <filepath>
+# <test> should be an executable script.
+#  It should accept a file path as its first command line argument and
+#  should run the desired tests by importing the Python script found at
+#  that location.
+# <students> should be a text file containing the names of the students.
+# <filepath> should be the remainder of the filepath required to get to
+#  the desired solutions file within a given student's directory tree.
+#
+# Example: python grade_imp.py linesweep_test_imp.py students.txt Vol1s2/Section27/solutions.py
+
+class student(object):
+    def __init__(self, name, path):
+        self.name = name
+        self.solution = '{0}/{1}'.format(name, path)
+        print self.solution
+        self.path = dirname(self.solution)
+
+class grader(object):
+    def __init__(self, test, students, solutions):
+        with open(students) as f:
+            self.students = [student(s.strip(), solutions) for s in f]
+        self.test = test
+    
+    def get_grade(self, student):
+        # Skip giving feedback if the student hasn't even made the directory yet.
+        # Give a score of 0 in the grades file
+        if not isdir(student.path):
+            student.score = 'None'
+            return
+        # Handle the expected case that the folder is really there.
+        with open('{0}/feedback.txt'.format(student.path), 'w') as f:
+            score = raw_input('Enter score: ')
+            student.score = score
+            f.write('score: {0}\n'.format(score))
+            print 'Now enter any other feedback you would like to give.'
+            print 'enter an empty line to finish'
+            for line in iter(raw_input, ''):
+                f.write(line + '\n')
+    
+    def grade_all(self):
+        for student in self.students:
+            system('python {0} {1}'.format(self.test, student.solution))
+            self.get_grade(student)
+        mode = 'w'
+        if isfile('grades.txt'):
+            mode = 'a'
+        with open('grades.txt', mode) as f:
+            f.write('\n')
+            f.write(self.test + '\n')
+            for student in self.students:
+                f.write('{0}: {1}\n'.format(student.name, student.score))
+
+if __name__ == '__main__':
+    from sys import argv
+    grader(*argv[1:]).grade_all()
+
