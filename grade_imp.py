@@ -5,6 +5,7 @@ from imp import load_source
 from traceback import print_exc
 from sys import stdout
 from glob import glob
+from time import strftime
 
 # Usage:
 # python grade_abs_imp.py <test> <students> <filepath>
@@ -80,6 +81,9 @@ class grader(object):
         with open('grades.txt', mode) as f:
             f.write('\n')
             f.write(self.test + '\n')
+            f.write(strftime('%m/%d/%Y  %H:%M:%S\n'))
+            f.flush()
+            fsync()
             for student in self.students:
                 system('python {0} {1}'.format(self.test, student.solution))
                 # Remove various compiled files after running the tests.
