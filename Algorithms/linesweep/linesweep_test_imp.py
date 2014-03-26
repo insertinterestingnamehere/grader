@@ -29,6 +29,7 @@ def test_farthest(farthest):
     # lies at one of the corners.
     seed(149)
     X = rand(150, 2)
+    return farthest(X, (.25, .75), (.25, .75), 5)
 
 def test_triangulate(triangulate):
     triangulate(20)
