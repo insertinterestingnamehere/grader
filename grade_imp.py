@@ -90,7 +90,6 @@ class grader(object):
                 f.write('{0}: {1}\n'.format(student.name, student.score))
                 f.flush()
                 fsync()
-                
 
 if __name__ == '__main__':
     from sys import argv
