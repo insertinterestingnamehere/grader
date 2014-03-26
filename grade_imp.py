@@ -27,7 +27,9 @@ def test(ftest, fstr, module):
         print "Function {0} not found in student's solutions file.".format(fstr)
         return
     try:
-        print ftest(f)
+        val = ftest(f)
+        if val is not None:
+            print val
     except:
         print "Student's code caused an unexpected error: "
         print '-'*60
