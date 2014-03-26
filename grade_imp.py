@@ -1,9 +1,10 @@
 # A driver for the import-by-path based version of the grading script.
-from os import system
+from os import system, remove
 from os.path import dirname, isdir, isfile
 from imp import load_source
 from traceback import print_exc
 from sys import stdout
+from glob import glob
 
 # Usage:
 # python grade_abs_imp.py <test> <students> <filepath>
@@ -73,6 +74,10 @@ class grader(object):
     def grade_all(self):
         for student in self.students:
             system('python {0} {1}'.format(self.test, student.solution))
+            # Remove various compiled files after running the tests.
+            for extension in ['pyc', 'pyd', 'so', 'o']:
+                for f in glob('{0}/*.{1}'.format(student.path, extension)):
+                    remove(f)
             self.get_grade(student)
         mode = 'w'
         if isfile('grades.txt'):
