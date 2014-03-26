@@ -21,7 +21,7 @@ from sys import stdout
 def test(ftest, fstr, module):
     print ftest.__doc__
     try:
-        f = getattr(s, fstr)
+        f = getattr(module, fstr)
     except AttributeError:
         print "Function {0} not found in student's solutions file.".format(fstr)
         return
