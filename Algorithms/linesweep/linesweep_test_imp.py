@@ -32,6 +32,7 @@ def test_farthest(farthest):
     return farthest(X, (.25, .75), (.25, .75), 5)
 
 def test_triangulate(triangulate):
+    """ Delaunay Triangulation problem. """
     triangulate(20)
     # Show the plot if the function didn't do it already.
     plt.show()
