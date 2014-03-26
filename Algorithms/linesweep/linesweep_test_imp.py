@@ -53,14 +53,14 @@ def mindist_speed_low_dim(mindist):
     """ Speed of mindist function for lower dimensions. """
     seed(18)
     X = rand(10000000, 2)
-    T = Timer(lambda: mindist(X, metric))
+    T = Timer(lambda: mindist(X))
     return T.timeit(number=2)
 
 def mindist_speed_high_dim(mindist):
     """ Speed of mindist function for higher dimensions. """
     seed(25)
     X = rand(10000, 8)
-    T = Timer(lambda: mindist(X, metric))
+    T = Timer(lambda: mindist(X))
     return T.timeit(number=2)
 
 if __name__ == '__main__':
