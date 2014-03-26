@@ -72,13 +72,6 @@ class grader(object):
                 f.write(line + '\n')
     
     def grade_all(self):
-        for student in self.students:
-            system('python {0} {1}'.format(self.test, student.solution))
-            # Remove various compiled files after running the tests.
-            for extension in ['pyc', 'pyd', 'so', 'o']:
-                for f in glob('{0}/*.{1}'.format(student.path, extension)):
-                    remove(f)
-            self.get_grade(student)
         mode = 'w'
         if isfile('grades.txt'):
             mode = 'a'
@@ -86,6 +79,12 @@ class grader(object):
             f.write('\n')
             f.write(self.test + '\n')
             for student in self.students:
+                system('python {0} {1}'.format(self.test, student.solution))
+                # Remove various compiled files after running the tests.
+                for extension in ['pyc', 'pyd', 'so', 'o']:
+                    for compiled in glob('{0}/*.{1}'.format(student.path, extension)):
+                        remove(compiled)
+                self.get_grade(student)
                 f.write('{0}: {1}\n'.format(student.name, student.score))
 
 if __name__ == '__main__':
