@@ -1,6 +1,9 @@
 # A driver for the import-by-path based version of the grading script.
 from os import system
 from os.path import dirname, isdir, isfile
+from imp import load_source
+from traceback import print_exc
+from sys import stdout
 
 # Usage:
 # python grade_abs_imp.py <test> <students> <filepath>
@@ -13,6 +16,30 @@ from os.path import dirname, isdir, isfile
 #  the desired solutions file within a given student's directory tree.
 #
 # Example: python grade_imp.py linesweep_test_imp.py students.txt Vol1s2/Section27/solutions.py
+
+# Helper function for test scripts
+def test(ftest, fstr, module):
+    print ftest.__doc__
+    try:
+        f = getattr(s, fstr)
+    except AttributeError:
+        print "Function {0} not found in student's solutions file.".format(fstr)
+        return
+    try:
+        print ftest(f)
+    except:
+        print "Student's code caused an unexpected error: "
+        print '-'*60
+        print_exc(file=stdout)
+        print '-'*60
+
+# Another helper function for test scripts
+def load_solutions(source):
+    try:
+        s = load_source('solutions', source)
+    except IOError:
+        raise ImportError('Could not find student solutions file.')
+    return s
 
 class student(object):
     def __init__(self, name, path):

@@ -1,30 +1,11 @@
-from imp import load_source
-from traceback import print_exc
 from numpy import sqrt
 from numpy.random import rand, seed
 from timeit import Timer
 from matplotlib import pyplot as plt
-from sys import argv, stdout
 
 def metric(p, X):
     dif = (X - p)
     return sqrt((dif * dif).sum(axis=-1))
-
-# Helper function
-def test(ftest, fstr, module):
-    print ftest.__doc__
-    try:
-        f = getattr(s, fstr)
-    except AttributeError:
-        print "Function not found in student's solutions file."
-        return
-    try:
-        print ftest(f)
-    except:
-        print "Student's code caused an unexpected error: "
-        print '-'*60
-        print_exc(file=stdout)
-        print '-'*60
 
 def mindist_simple_correctness(mindist_simple):
     """ Correctness of mindist_simple function. """
@@ -83,11 +64,9 @@ def mindist_speed_high_dim(mindist):
     return T.timeit(number=2)
 
 if __name__ == '__main__':
-    source = argv[1]
-    try:
-        s = load_source('solutions', source)
-    except IOError:
-        raise ImportError('Could not find student solutions file.')
+    from grade_imp import load_solutions, test
+    from sys import argv
+    s = load_solutions(argv[1])
     test(mindist_simple_correctness, 'mindist_simple', s)
     test(mindist_correctness, 'mindist', s)
     #test(test_farthest, 'farthest', s)
