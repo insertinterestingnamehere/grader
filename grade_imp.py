@@ -1,5 +1,5 @@
 # A driver for the import-by-path based version of the grading script.
-from os import system, remove
+from os import system, remove, fsync
 from os.path import dirname, isdir, isfile
 from imp import load_source
 from traceback import print_exc
@@ -88,6 +88,9 @@ class grader(object):
                         remove(compiled)
                 self.get_grade(student)
                 f.write('{0}: {1}\n'.format(student.name, student.score))
+                f.flush()
+                fsync()
+                
 
 if __name__ == '__main__':
     from sys import argv
