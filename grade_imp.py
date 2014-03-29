@@ -93,7 +93,10 @@ class student(object):
         # path to the directory containing the solutions file.
         self.name = name
         self.solution = '{0}/{1}'.format(name, path)
-        self.path = dirname(self.solution)
+        if isdir(self.solution):
+            self.path = self.solution
+        else:
+            self.path = dirname(self.solution)
 
 # This is another internal class.
 # It is designed to drive all the tests using the data
