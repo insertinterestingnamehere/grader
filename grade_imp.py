@@ -127,17 +127,20 @@ def get_cython_mod(student_dir, source_dir, name=None):
         out = sp.Popen(command, stdout=sp.PIPE).stdout.read()
     current_files = set(listdir(directory))
     for f in current_files:
+        filename, ext = splitext(f)
+        # Note: more ought to be done to insure that the
+        # student isn't compiling to a .so and then linking their module
+        # against it.
+        if ext in ['.pyd', '.so']:
+            new_mod = f
         # Remove everything except the relevant .o, .pyd, and .so files.
         # The rest of the files will be cleaned up when the
         # grade_all method of the Grader class is called.
         # This could cause trouble if a student is using some random file
         # extension instead of .o.
         if f not in previous_files:
-            filename, ext = splitext(f)
             if ext not in ['.pyd', '.so', '.o']:
                 remove(f)
-            elif ext in ['.pyd', '.so']:
-                new_mod = f
     # Remove the cython build directory.
     rmdir(join(drectory, 'build'))
     try:
@@ -145,6 +148,10 @@ def get_cython_mod(student_dir, source_dir, name=None):
         s = load_source('solutions', new_mod)
     except NameError:
         print 'Build failed. Unable to load module'
+        print 'output from build was:'
+        print '-'*60
+        print out
+        print '-'*60
         return
     return s
 
