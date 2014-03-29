@@ -118,7 +118,11 @@ class grader(object):
             student.score = 'None'
             return
         # Handle the expected case that the folder is really there.
-        with open('{0}/feedback.txt'.format(student.path), 'w') as f:
+        feedback = '{0}/feedback.txt'.format(student.path)
+        if isfile(feedback):
+            if raw_input("Feedback file already found. Overwrite? y/n") not in ['y', 'Y']:
+                return
+        with open(feedback, 'w') as f:
             score = raw_input('Enter score: ')
             student.score = score
             f.write('score: {0}\n'.format(score))
