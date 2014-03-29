@@ -142,7 +142,9 @@ def get_cython_mod(student_dir, source_dir, name=None):
             if ext not in ['.pyd', '.so', '.o']:
                 remove(f)
     # Remove the cython build directory.
-    rmdir(join(drectory, 'build'))
+    build_dir = join(directory, 'build')
+    if isdir(build_dir):
+        rmdir(build_dir)
     try:
         # Use the load_source command to import from a file location.
         s = load_source('solutions', new_mod)
