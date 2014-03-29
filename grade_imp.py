@@ -1,11 +1,12 @@
 # A driver for the import-by-path based version of the grading script.
-from os import system, remove, fsync
-from os.path import dirname, isdir, isfile
+from os import system, remove, fsync, listdir, rmdir
+from os.path import dirname, isdir, isfile, splitext
 from imp import load_source
 from traceback import print_exc
 from sys import stdout
 from glob import glob
 from time import strftime
+import subprocess as sp
 
 # Usage:
 # python grade_abs_imp.py <test> <students> <filepath>
@@ -34,6 +35,13 @@ from time import strftime
 # error handling. It is meant to be imported by each test script then used
 # to run each test and print the output.
 # More utility functions could be added to this file as needed.
+
+# A substitute for os.path.join that always uses forward slashes.
+# Yes, this really does work on Windows.
+# Writing it this way avoids having annoying paths that mix
+# forward and backward shlashes on Windows.
+def join(*args):
+    return ('{}/'*(len(args) - 1) + '{}').format(*args)
 
 # Helper function for test scripts
 # Run a test and print its output.
@@ -80,7 +88,64 @@ def load_solutions(source):
         # Use the load_source command to import from a file location.
         s = load_source('solutions', source)
     except IOError:
-        raise ImportError('Could not find student solutions file.')
+        print 'Could not find student solutions file.'
+        return
+    return s
+
+def get_cython_mod(student_dir, source_dir, name=None):
+    """ Build a Cython module contained in 'source_dir' that is
+    a subdirectory of 'student_dir'. Specify the name of the setup
+    file as 'name' if possible. If name is specified, this function
+    will build the module with setup file 'name' and then import
+    the resulting .so or .pyd module and return a module object.
+    If name is not specified, it will find a file with 'setup' or 'Setup'
+    in its name and try to use it to build a module and then import
+    the resulting module. This process probably won't work if there
+    is more than one file in the directory with a name
+    containing 'setup' or 'Setup'.
+    A simple example would be
+    get_cython_mod('path/to/student/directory', 'source/directory/in/folder', 'setup.py') """
+    directory = join(student_dir, source_dir)
+    previous_files = set(listdir(directory))
+    if name is not None:
+        f = join(directory, name)
+        print 'Building {}'.format(f)
+        command = 'python {} build_ext --inplace'.format(f)
+        out = sp.Popen(command, stdout=sp.PIPE).stdout.read()
+    else:
+        d = join(student_dir, source_dir)
+        cond1 = '{}/*setup*.py'.format(d)
+        cond2 = '{}/*Setup*.py'.format(d)
+        try:
+            f = next(iter(set(glob(cond1)) | set(glob(cond2))))
+        except StopIteration:
+            print 'Setup file not found.'
+            return
+        f = join(student_dir, source_dir, f)
+        print 'Building {0}'.format(f)
+        command = 'python {0} build_ext --inplace'.format(f)
+        out = sp.Popen(command, stdout=sp.PIPE).stdout.read()
+    current_files = set(listdir(directory))
+    for f in current_files:
+        # Remove everything except the relevant .o, .pyd, and .so files.
+        # The rest of the files will be cleaned up when the
+        # grade_all method of the Grader class is called.
+        # This could cause trouble if a student is using some random file
+        # extension instead of .o.
+        if f not in previous_files:
+            filename, ext = splitext(f)
+            if ext not in ['.pyd', '.so', '.o']:
+                remove(f)
+            elif ext in ['.pyd', '.so']:
+                new_mod = f
+    # Remove the cython build directory.
+    rmdir(join(drectory, 'build'))
+    try:
+        # Use the load_source command to import from a file location.
+        s = load_source('solutions', new_mod)
+    except NameError:
+        print 'Build failed. Unable to load module'
+        return
     return s
 
 # Internal class for this script.
@@ -92,7 +157,7 @@ class student(object):
         # path to solutions file
         # path to the directory containing the solutions file.
         self.name = name
-        self.solution = '{0}/{1}'.format(name, path)
+        self.solution = join(name, path)
         if isdir(self.solution):
             self.path = self.solution
         else:
@@ -102,6 +167,7 @@ class student(object):
 # It is designed to drive all the tests using the data
 # stored in the different student objects.
 class grader(object):
+    
     def __init__(self, test, students, solutions):
         # Construct a list of student objects that need grading.
         with open(students) as f:
@@ -118,7 +184,7 @@ class grader(object):
             student.score = 'None'
             return
         # Handle the expected case that the folder is really there.
-        feedback = '{0}/feedback.txt'.format(student.path)
+        feedback = join(student.path, 'feedback.txt')
         if isfile(feedback):
             if raw_input("Feedback file already found. Overwrite? y/n") not in ['y', 'Y']:
                 return
