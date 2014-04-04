@@ -287,7 +287,7 @@ class grader(object):
             f.write(strftime('%m/%d/%Y  %H:%M:%S\n'))
             # Use flush and fsync to write all current changes to disk.
             f.flush()
-            fsync()
+            fsync(f.fileno())
             # Process each student.
             for student in self.students:
                 # Run the test script here.
