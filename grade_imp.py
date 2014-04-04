@@ -256,6 +256,8 @@ class grader(object):
         feedback = join(student.path, 'feedback.txt')
         if isfile(feedback):
             if raw_input("Feedback file already found. Overwrite? y/n") not in ['y', 'Y']:
+                with open(feedback, 'r') as f:
+                    student.score = int(next(f).split()[-1])
                 return
         with open(feedback, 'w') as f:
             score = raw_input('Enter score: ')
