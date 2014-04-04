@@ -125,6 +125,9 @@ def load_cython_mod(student_dir, source_dir, setup_name=None, module_name=None):
     A simple example would be
     load_cython_mod('path/to/student/directory', 'source/directory/in/folder', 'setup.py', 'mymodule') """
     directory = join(student_dir, source_dir)
+    if not isdir(directory):
+        print 'Student directory: {} not found!'.format(directory)
+        return
     original_wd = getcwd()
     # Remove old pyd and so files so we are verifying
     # that the current version of the student's setup
@@ -310,7 +313,7 @@ class grader(object):
                 # make sure that all changes have been saved to disk before
                 # processing the next student.
                 f.flush()
-                fsync()
+                fsync(f.fileno())
         # Remove ALL .o, .so, and .pyd files in current directory.
         # This needs to be done because of the hack to get pyd imports working.
         for f in glob('*.pyd') + glob('*.o') + glob('*.so'):
