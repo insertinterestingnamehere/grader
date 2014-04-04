@@ -200,6 +200,8 @@ def load_cython_mod(student_dir, source_dir, setup_name=None, module_name=None):
     try:
         # There has really got to be a better way to do this.
         exec('import {} as s'.format(name_for_import))
+        for f in files_to_move:
+            remove(f)
         return s
     except ImportError:
         #chdir(original_wd)
@@ -208,6 +210,8 @@ def load_cython_mod(student_dir, source_dir, setup_name=None, module_name=None):
         print '-'*60
         print out
         print '-'*60
+        for f in files_to_move:
+            remove(f)
         # Again, returning None, allows error handling for functions not
         # found to be handled by test function so as to not crash the
         # test script in the case that it has to load multiple modules.
