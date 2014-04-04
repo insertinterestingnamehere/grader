@@ -1,12 +1,24 @@
 # A driver for the import-by-path based version of the grading script.
-from os import system, remove, fsync, listdir, rmdir
+from os import system, remove, fsync, listdir, rmdir, getcwd, chdir, chmod
 from os.path import dirname, isdir, isfile, splitext
-from imp import load_source
+from imp import load_source, find_module, load_module
 from traceback import print_exc
 from sys import stdout
 from glob import glob
 from time import strftime
 import subprocess as sp
+from shutil import rmtree, copyfile
+from errno import EACCES
+from stat import S_IRWXU, S_IRWXG, S_IRWXO
+import os, stat, shutil
+
+def handleRemoveReadonly(func, path, exc):
+  excvalue = exc[1]
+  if func in (rmdir, remove) and excvalue.errno == EACCES:
+      chmod(path, S_IRWXU| S_IRWXG| S_IRWXO) # 0777
+      func(path)
+  else:
+      raise
 
 # Usage:
 # python grade_abs_imp.py <test> <students> <filepath>
@@ -92,47 +104,66 @@ def load_solutions(source):
         return
     return s
 
-def get_cython_mod(student_dir, source_dir, name=None):
+def load_cython_mod(student_dir, source_dir, setup_name=None, module_name=None):
     """ Build a Cython module contained in 'source_dir' that is
     a subdirectory of 'student_dir'. Specify the name of the setup
-    file as 'name' if possible. If name is specified, this function
+    file as 'setup_name' if possible. If 'setup_name' is specified, this function
     will build the module with setup file 'name' and then import
     the resulting .so or .pyd module and return a module object.
-    If name is not specified, it will find a file with 'setup' or 'Setup'
+    If 'module_name' is specified, this function will import the
+    resulting '.pyd' or '.so' file. The file extension for the module
+    is not expected to be a part of the module name.
+    If 'setup_name' is not specified, it will find a file with 'setup' or 'Setup'
     in its name and try to use it to build a module and then import
-    the resulting module. This process probably won't work if there
+    the resulting module.
+    This process probably won't work if there
     is more than one file in the directory with a name
     containing 'setup' or 'Setup'.
+    If 'module_name' is not specified, it will
+    look for new .so and .pyd files that were made by compilation.
+    Note: this will delete all .pyd, and .so files in the build directory.
     A simple example would be
-    get_cython_mod('path/to/student/directory', 'source/directory/in/folder', 'setup.py') """
+    load_cython_mod('path/to/student/directory', 'source/directory/in/folder', 'setup.py', 'mymodule') """
     directory = join(student_dir, source_dir)
+    original_wd = getcwd()
+    # Remove old pyd and so files so we are verifying
+    # that the current version of the student's setup
+    # file actually works.
+    for ext in ['.pyd', '.so']:
+        for f in glob('{}/*{}'.format(directory, ext)):
+            remove(f)
+    build_dir = join(directory, 'build')
+    if isdir(build_dir):
+        rmtree(build_dir)
+    # Store the list of previous files.
     previous_files = set(listdir(directory))
-    if name is not None:
-        f = join(directory, name)
-        print 'Building {}'.format(f)
-        command = 'python {} build_ext --inplace'.format(f)
+    if setup_name is not None:
+        print 'Building {}'.format(setup_name)
+        command = 'python {} build_ext --inplace'.format(setup_name)
+        # Store output of compilation without printing it.
+        chdir(directory)
         out = sp.Popen(command, stdout=sp.PIPE).stdout.read()
+        chdir(original_wd)
     else:
-        d = join(student_dir, source_dir)
-        cond1 = '{}/*setup*.py'.format(d)
-        cond2 = '{}/*Setup*.py'.format(d)
+        chdir(directory)
+        cond1 = '*setup*.py'
+        cond2 = '*Setup*.py'
         try:
             f = next(iter(set(glob(cond1)) | set(glob(cond2))))
         except StopIteration:
             print 'Setup file not found.'
+            # Returning None allows for the test script to
+            # say each function is not found instead of
+            # raising an error and stopping the test script.
             return
-        f = join(student_dir, source_dir, f)
-        print 'Building {0}'.format(f)
-        command = 'python {0} build_ext --inplace'.format(f)
+        print 'Building {}'.format(join(directory, f))
+        command = 'python {} build_ext --inplace'.format(f)
+        # Store output of compilation without printing it.
         out = sp.Popen(command, stdout=sp.PIPE).stdout.read()
+        chdir(original_wd)
     current_files = set(listdir(directory))
     for f in current_files:
         filename, ext = splitext(f)
-        # Note: more ought to be done to insure that the
-        # student isn't compiling to a .so and then linking their module
-        # against it.
-        if ext in ['.pyd', '.so']:
-            new_mod = f
         # Remove everything except the relevant .o, .pyd, and .so files.
         # The rest of the files will be cleaned up when the
         # grade_all method of the Grader class is called.
@@ -140,22 +171,47 @@ def get_cython_mod(student_dir, source_dir, name=None):
         # extension instead of .o.
         if f not in previous_files:
             if ext not in ['.pyd', '.so', '.o']:
-                remove(f)
-    # Remove the cython build directory.
-    build_dir = join(directory, 'build')
-    if isdir(build_dir):
-        rmdir(build_dir)
+                full_filepath = join(directory, f)
+                if isdir(full_filepath):
+                    # Using rmtree also deletes the build directory if it was made.
+                    # Be careful. This deletes folders as well as files.
+                    rmtree(full_filepath, ignore_errors=False, onerror=handleRemoveReadonly)
+                    #rmtree(join(directory, f))
+                else:
+                    remove(full_filepath)
+    module_file = None
+    for f in glob('{}/*.so'.format(directory)):
+        module_file = f
+    for f in glob('{}/*.pyd'.format(directory)):
+        module_file = f
+    module_file = module_file.replace("\\", '/')
+    if module_name is None:
+        module_name = 'solutions'
+    filename = module_file.split('/')[-1]
+    name_for_import, ext = splitext(filename)
+    files_to_move = glob('{}/*.so'.format(directory)) + glob('{}/*.o'.format(directory)) + glob('{}/*.pyd'.format(directory))
+    for f in files_to_move:
+        fnew = f.replace("\\", '/')
+        filename = fnew.split('/')[-1]
+        if isfile(filename):
+            remove(filename)
+        copyfile(f, filename)
+    print "module_file: ", module_file
     try:
-        # Use the load_source command to import from a file location.
-        s = load_source('solutions', new_mod)
-    except NameError:
+        # There has really got to be a better way to do this.
+        exec('import {} as s'.format(name_for_import))
+        return s
+    except ImportError:
+        #chdir(original_wd)
         print 'Build failed. Unable to load module'
         print 'output from build was:'
         print '-'*60
         print out
         print '-'*60
+        # Again, returning None, allows error handling for functions not
+        # found to be handled by test function so as to not crash the
+        # test script in the case that it has to load multiple modules.
         return
-    return s
 
 # Internal class for this script.
 # It is designed to store the relevant information for each student.
@@ -200,7 +256,7 @@ class grader(object):
         with open(feedback, 'w') as f:
             score = raw_input('Enter score: ')
             student.score = score
-            f.write('score: {0}\n'.format(score))
+            f.write('score: {}\n'.format(score))
             print 'Now enter any other feedback you would like to give.'
             print 'enter an empty line to finish'
             # write lines to file until an empty line is given.
@@ -231,24 +287,28 @@ class grader(object):
             # Process each student.
             for student in self.students:
                 # Run the test script here.
-                system('python {0} {1}'.format(self.test, student.solution))
+                system('python {} {}'.format(self.test, student.solution))
                 # Remove any compiled files after running the tests.
                 # Any additional cleanup can be taken care of by the
                 # individual test script.
                 for extension in ['pyc', 'pyd', 'so', 'o']:
                     # Use glob to remove all files with the given extension
                     # in the folder containing each student's solutions file.
-                    for compiled in glob('{0}/*.{1}'.format(student.path, extension)):
+                    for compiled in glob('{}/*.{}'.format(student.path, extension)):
                         remove(compiled)
                 # When each test script has run to completion, ask the
                 # person grading to assign a grade and give some feedback.
                 self.get_grade(student)
                 # Write the student's grade to the 'grades.txt' file.
-                f.write('{0}: {1}\n'.format(student.name, student.score))
+                f.write('{}: {}\n'.format(student.name, student.score))
                 # make sure that all changes have been saved to disk before
                 # processing the next student.
                 f.flush()
                 fsync()
+        # Remove ALL .o, .so, and .pyd files in current directory.
+        # This needs to be done because of the hack to get pyd imports working.
+        for f in glob('*.pyd') + glob('*.o') + glob('*.so'):
+            remove(f)
 
 if __name__ == '__main__':
     from sys import argv
