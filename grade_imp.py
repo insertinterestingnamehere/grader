@@ -260,7 +260,15 @@ class grader(object):
         if isfile(feedback):
             if raw_input("Feedback file already found. Overwrite? y/n") not in ['y', 'Y']:
                 with open(feedback, 'r') as f:
-                    student.score = int(next(f).split()[-1])
+                    old_score = next(f).split()[-1]
+                    try:
+                        student.score = int(old_score)
+                    except ValueError:
+                        if old_score in ['None', 'none']:
+                            student.score = 'None'
+                        else:
+                            print 'Warning! detected score is not an integer or None.'
+                            student.score = old_score
                 return
         with open(feedback, 'w') as f:
             score = raw_input('Enter score: ')
