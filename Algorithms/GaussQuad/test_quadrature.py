@@ -24,12 +24,6 @@ def test_funcplot(funcplot, res=101):
     Y = rand(*(X.shape))
     f = lambda x: np.interp(np.sin(x), X, Y)
     a, b = - 2 * np.pi, 4 * np.pi
-    X0 = np.linspace(a, b, res)
-    X1 = np.linspace(-1, 1, res)
-    plt.plot(X0, f(X0))
-    plt.show()
-    plt.plot(X1, ((b - a) / 2.) * f(X0))
-    plt.show()
     funcplot(f, a, b, n=res)
     plt.show()
 
