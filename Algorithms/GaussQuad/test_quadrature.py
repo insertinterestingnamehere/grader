@@ -4,25 +4,33 @@ from numpy.random import rand, seed
 from matplotlib import pyplot as plt
 from numpy.polynomial.legendre import leggauss
 
-def test_shift(shift_function):
+def test_shift(shift_function, res=101):
     """ Test shift_function """
     seed(932)
-    X = np.linspace(-1, 1)
+    X = np.linspace(-1, 1, 13)
     Y = rand(*(X.shape))
     f = lambda x: np.interp(np.sin(x), X, Y)
     a, b = - 2 * np.pi, 4 * np.pi
-    plt.plot(X, f(X)
-    plt.plot(X, shift_function(f, a, b)(X))
+    X0 = np.linspace(a, b, res)
+    X1 = np.linspace(-1, 1, res)
+    plt.plot(X1, f(X0))
+    plt.plot(X1, shift_function(f, a, b)(X1))
     plt.show()
 
-def test_funcplot(funcplot):
+def test_funcplot(funcplot, res=101):
     """ Test funcplot """
     seed(84)
-    X = np.linspace(-1, 1)
+    X = np.linspace(-1, 1, 13)
     Y = rand(*(X.shape))
     f = lambda x: np.interp(np.sin(x), X, Y)
     a, b = - 2 * np.pi, 4 * np.pi
-    funcplot(f, a, b)
+    X0 = np.linspace(a, b, res)
+    X1 = np.linspace(-1, 1, res)
+    plt.plot(X0, f(X0))
+    plt.show()
+    plt.plot(X1, f(X0))
+    plt.show()
+    funcplot(f, a, b, n=res)
     plt.show()
 
 def test_shift_example(shift_example):
@@ -36,7 +44,7 @@ def test_integral_estimation(estimate_integral):
     X = np.linspace(-1, 1, 13)
     Y = rand(*(X.shape))
     f = lambda x: np.interp(np.cos(x), X, Y)
-    return estimate_integral(f, 8, 14)
+    return estimate_integral(f, 8, 14, points, weights)
 
 def test_jacobi(construct_jacobi, n = 9):
     """ Test formation of the Jacobi matrix """
@@ -49,11 +57,11 @@ def test_jacobi(construct_jacobi, n = 9):
 
 def test_points_and_weights(points_and_weights):
     """ Test points_and_weights """
-    n = 120
+    n = 121
     points, weights = points_and_weights(n)
     weights = weights[points.argsort()]
     points.sort()
-    return points, weights
+    return points[100:], weights[100:]
 
 def test_normal_cdf(normal_cdf):
     """ Test normal_cdf """
