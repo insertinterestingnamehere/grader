@@ -28,7 +28,7 @@ def test_funcplot(funcplot, res=101):
     X1 = np.linspace(-1, 1, res)
     plt.plot(X0, f(X0))
     plt.show()
-    plt.plot(X1, f(X0))
+    plt.plot(X1, ((b - a) / 2.) * f(X0))
     plt.show()
     funcplot(f, a, b, n=res)
     plt.show()
