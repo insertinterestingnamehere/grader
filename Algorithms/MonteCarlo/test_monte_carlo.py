@@ -10,12 +10,13 @@ def grid(d=3, n=100):
 
 def test_eval_avg(eval_avg):
     """ Test eval_avg """
-    return eval_avg(grid(d=3, n=87))
+    seed(63)
+    return eval_avg(grid(d=3, n=14))
 
-def test_monte_carlo(n, d):
+def test_monte_carlo(monte_carlo):
     """ Test monte_carlo """
     seed(852)
-    return monte_carlo(200000, 15)
+    return monte_carlo(2000, 8)
 
 if __name__ == '__main__':
     from sys import argv
